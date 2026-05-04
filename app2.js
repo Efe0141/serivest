@@ -29,7 +29,7 @@ const selectors = {
   mapLink: document.querySelector("#mapLink"),
   mapCoord: document.querySelector("#mapCoord"),
   mapStatus: document.querySelector("#mapStatus"),
-  liveMapFrame: document.querySelector("#liveMapFrame"),
+  liveMapCanvas: document.querySelector("#liveMapCanvas"),
   latValue: document.querySelector("#latValue"),
   lngValue: document.querySelector("#lngValue"),
   satValue: document.querySelector("#satValue"),
@@ -41,15 +41,18 @@ const selectors = {
   soundButton: document.querySelector("#soundButton"),
   eventCount: document.querySelector("#eventCount"),
   eventList: document.querySelector("#eventList"),
-  toastRoot: document.querySelector("#toastRoot")
+  toastRoot: document.querySelector("#toastRoot"),
+  languageButtons: document.querySelectorAll("[data-lang-button]")
 };
 
 const appState = {
+  lang: localStorage.getItem("sentrivest:lang") || "tr",
   baseUrl: "",
   eventsReady: false,
   eventHistory: [],
   lastEventId: 0,
   lastStatus: null,
+  lastMapKey: "",
   soundEnabled: localStorage.getItem("sentrivest:sound") === "1",
   audioContext: null,
   polling: null
@@ -57,6 +60,209 @@ const appState = {
 
 const POLL_MS = 2000;
 const MAX_EVENTS = 30;
+const MAP_ZOOM = 16;
+const TILE_SIZE = 256;
+
+const I18N = {
+  tr: {
+    appTitle: "Akilli Takip ve Tespit Yelegi",
+    waitingConnection: "Baglanti bekleniyor",
+    refresh: "Yenile",
+    deviceApi: "Cihaz API adresi",
+    connect: "Baglan",
+    connectionHelpInitial: "Canli durum icin ESP32 ile ayni Wi-Fi/hotspot aginda olunmali.",
+    liveArmor: "Canli harita",
+    vestTracking: "Yelek uzerinden takip",
+    waitingData: "Veri bekleniyor",
+    gpsTracking: "GPS takibi",
+    waitingLocation: "Konum bekleniyor",
+    gpsHint: "Fix alindiginda harita baglantisi aktif olur.",
+    lastUpdate: "Son guncelleme",
+    zones: "Bolgeler",
+    zoneStatus: "Kisim durumlari",
+    location: "Konum",
+    gpsInfo: "GPS bilgisi",
+    map: "Harita",
+    latitude: "Enlem",
+    longitude: "Boylam",
+    satellite: "Uydu",
+    speed: "Hiz",
+    lastFix: "Son fix",
+    liveLocationTracking: "Canli konum takibi",
+    waitingGps: "GPS bekleniyor",
+    mapWaiting: "GPS fix geldiginde harita burada canli guncellenecek.",
+    commands: "Komutlar",
+    workMode: "Calisma modu",
+    tracking: "Izleme",
+    system: "Sistem",
+    enableNotifications: "Bildirimleri ac",
+    notificationsOpen: "Bildirim acik",
+    notificationsClosed: "Bildirim kapali",
+    notificationsUnavailable: "Bildirim yok",
+    enableSound: "Sesi ac",
+    soundOn: "Ses acik",
+    notifications: "Bildirimler",
+    eventFeed: "Olay akisi",
+    noNotifications: "Henuz bildirim yok",
+    cloudConnected: "Bulut bagli",
+    connected: "Bagli",
+    connectionLost: "Baglanti yok",
+    cloudNoData: "Bulut veri yok",
+    cloudSource: "Bulut uzerinden herkese acik canli veri aliniyor.",
+    localSource: "Yerel veri {source} adresinden aliniyor.",
+    cloudMissing: "Bulutta veri yok. ESP32 acik olmali, Wi-Fi'ye baglanmali ve Firebase adresi .ino icinde dogru olmali.",
+    localMissing: "Durum gorunmuyorsa ESP32 ile ayni Wi-Fi/hotspot aginda ac ve Serial Monitor'daki IP adresini Cihaz API adresi alanina yaz.",
+    firebaseActive: "Firebase bulut modu aktif",
+    publicReady: "Public link modu hazir. ESP32 Firebase'e veri gonderdiginde herkes bu panelden gorecek.",
+    localMode: "Firebase adresi girilmedigi icin yerel ESP32 API modu kullaniliyor.",
+    alert: "UYARI",
+    normal: "NORMAL",
+    affected: "Etkilenen",
+    healthy: "Saglam",
+    wifiOnline: "Bagli",
+    wifiOffline: "Kopuk",
+    noIp: "IP yok",
+    fix: "Fix var",
+    noFix: "Fix yok",
+    waitingPosition: "Konum bekleniyor",
+    deviceOpen: "Cihaz acik",
+    allHealthy: "Tumu saglam",
+    alarmCount: "{count} alarm",
+    noZoneData: "Bolge verisi yok",
+    broken: "KOPUK / VURULDU",
+    solid: "SAGLAM",
+    trackingNormal: "Takip normal",
+    risk: "Risk",
+    gpsActive: "GPS fix aktif",
+    mapLive: "Konum: {lat}, {lng} - son fix {age} once",
+    record: "kayit",
+    ago: "once",
+    commandSent: "Komut buluta gonderildi",
+    commandSentBody: "{name} {state} istegi ESP32 tarafindan okunacak.",
+    open: "ac",
+    close: "kapat",
+    commandFailed: "Komut gonderilemedi",
+    seconds: "sn",
+    minutes: "dk"
+  },
+  en: {
+    appTitle: "Smart Tracking and Detection Vest",
+    waitingConnection: "Waiting for connection",
+    refresh: "Refresh",
+    deviceApi: "Device API address",
+    connect: "Connect",
+    connectionHelpInitial: "For local live status, use the same Wi-Fi/hotspot as the ESP32.",
+    liveArmor: "Live armor",
+    vestTracking: "Vest visual tracking",
+    waitingData: "Waiting for data",
+    gpsTracking: "GPS tracking",
+    waitingLocation: "Waiting for location",
+    gpsHint: "The map becomes active after a GPS fix.",
+    lastUpdate: "Last update",
+    zones: "Zones",
+    zoneStatus: "Section status",
+    location: "Location",
+    gpsInfo: "GPS info",
+    map: "Map",
+    latitude: "Latitude",
+    longitude: "Longitude",
+    satellite: "Satellites",
+    speed: "Speed",
+    lastFix: "Last fix",
+    liveLocationTracking: "Live location tracking",
+    waitingGps: "Waiting for GPS",
+    mapWaiting: "The live map will update here after a GPS fix.",
+    commands: "Commands",
+    workMode: "Work mode",
+    tracking: "Tracking",
+    system: "System",
+    enableNotifications: "Enable notifications",
+    notificationsOpen: "Notifications on",
+    notificationsClosed: "Notifications off",
+    notificationsUnavailable: "Unavailable",
+    enableSound: "Enable sound",
+    soundOn: "Sound on",
+    notifications: "Notifications",
+    eventFeed: "Event feed",
+    noNotifications: "No notifications yet",
+    cloudConnected: "Cloud online",
+    connected: "Connected",
+    connectionLost: "No connection",
+    cloudNoData: "No cloud data",
+    cloudSource: "Receiving public live data through the cloud.",
+    localSource: "Receiving local data from {source}.",
+    cloudMissing: "No cloud data. ESP32 must be powered, online, and configured with the Firebase URL.",
+    localMissing: "If status is missing, open this on the same Wi-Fi/hotspot as the ESP32 and enter the Serial Monitor IP.",
+    firebaseActive: "Firebase cloud mode active",
+    publicReady: "Public link mode is ready. Everyone will see the panel when ESP32 sends data to Firebase.",
+    localMode: "Firebase URL is missing, so local ESP32 API mode is active.",
+    alert: "ALERT",
+    normal: "NORMAL",
+    affected: "Affected",
+    healthy: "Healthy",
+    wifiOnline: "Online",
+    wifiOffline: "Offline",
+    noIp: "No IP",
+    fix: "Fix active",
+    noFix: "No fix",
+    waitingPosition: "Waiting for location",
+    deviceOpen: "Device uptime",
+    allHealthy: "All healthy",
+    alarmCount: "{count} alarm",
+    noZoneData: "No zone data",
+    broken: "BROKEN / HIT",
+    solid: "SOLID",
+    trackingNormal: "Tracking normal",
+    risk: "Risk",
+    gpsActive: "GPS fix active",
+    mapLive: "Location: {lat}, {lng} - last fix {age} ago",
+    record: "records",
+    ago: "ago",
+    commandSent: "Command sent to cloud",
+    commandSentBody: "{name} {state} request will be read by ESP32.",
+    open: "on",
+    close: "off",
+    commandFailed: "Command failed",
+    seconds: "s",
+    minutes: "min"
+  }
+};
+
+function t(key, values = {}) {
+  let text = I18N[appState.lang]?.[key] || I18N.tr[key] || key;
+  Object.entries(values).forEach(([name, value]) => {
+    text = text.replaceAll(`{${name}}`, value);
+  });
+  return text;
+}
+
+function applyLanguage() {
+  document.documentElement.lang = appState.lang;
+
+  document.querySelectorAll("[data-i18n]").forEach((element) => {
+    element.textContent = t(element.dataset.i18n);
+  });
+
+  selectors.languageButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.langButton === appState.lang);
+  });
+
+  selectors.soundButton.textContent = appState.soundEnabled ? t("soundOn") : t("enableSound");
+  if (cloudEnabled()) {
+    selectors.deviceBase.value = t("firebaseActive");
+  }
+
+  if ("Notification" in window) {
+    selectors.notifyButton.textContent = Notification.permission === "granted" ? t("notificationsOpen") : t("enableNotifications");
+  } else {
+    selectors.notifyButton.textContent = t("notificationsUnavailable");
+  }
+
+  if (appState.lastStatus) {
+    renderStatus(appState.lastStatus);
+  }
+  renderEvents();
+}
 
 function cloudEnabled() {
   return CLOUD_DATABASE_URL.startsWith("https://") && !CLOUD_DATABASE_URL.includes("BURAYA_");
@@ -163,6 +369,53 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function localizeEventText(value) {
+  let text = String(value ?? "");
+  if (appState.lang !== "en") return text;
+
+  const replacements = [
+    ["Sistem basladi", "System started"],
+    ["Cihaz aktif", "Device active"],
+    ["SISTEM DURUMU", "SYSTEM STATUS"],
+    ["UYARI: Vurulma / kopma algilandi", "ALERT: Hit / break detected"],
+    ["UYARI DEVAM EDIYOR", "ALERT CONTINUES"],
+    ["Tum hatlar normale dondu", "All lines returned to normal"],
+    ["Bilgi: Tum hatlar normale dondu", "Info: All lines returned to normal"],
+    ["Canli konum guncelleme", "Live location update"],
+    ["CANLI KONUM GUNCELLEME", "LIVE LOCATION UPDATE"],
+    ["Sistem calisiyor", "System running"],
+    ["SISTEM CALISIYOR", "SYSTEM RUNNING"],
+    ["Alarm durumu", "Alarm state"],
+    ["Alarm", "Alarm"],
+    ["AKTIF", "ACTIVE"],
+    ["NORMAL", "NORMAL"],
+    ["Izleme", "Tracking"],
+    ["Sistem", "System"],
+    ["ACIK", "ON"],
+    ["KAPALI", "OFF"],
+    ["Etkilenen kisimlar", "Affected sections"],
+    ["Saglam kisimlar", "Healthy sections"],
+    ["Kisim durumlari", "Section status"],
+    ["Sol gogus", "Left chest"],
+    ["Sag kisim", "Right side"],
+    ["Sirt", "Back"],
+    ["KOPUK / VURULDU", "BROKEN / HIT"],
+    ["SAGLAM", "SOLID"],
+    ["Konum", "Location"],
+    ["Uydu", "Satellites"],
+    ["Hiz", "Speed"],
+    ["Son fix", "Last fix"],
+    ["Gecerli GPS konumu henuz yok", "No valid GPS location yet"],
+    ["Harita", "Map"],
+    ["sn once", "s ago"]
+  ];
+
+  replacements.forEach(([from, to]) => {
+    text = text.replaceAll(from, to);
+  });
+  return text;
+}
+
 function setPill(element, text, tone) {
   if (!element) return;
   element.textContent = text;
@@ -170,20 +423,20 @@ function setPill(element, text, tone) {
 }
 
 function sourceText() {
-  if (cloudEnabled()) return "Bulut uzerinden herkese acik canli veri aliniyor.";
-  return `Yerel veri ${appState.baseUrl || location.origin} adresinden aliniyor.`;
+  if (cloudEnabled()) return t("cloudSource");
+  return t("localSource", { source: appState.baseUrl || location.origin });
 }
 
 function setConnection(connected, detail = "") {
   if (connected) {
-    setPill(selectors.connectionPill, cloudEnabled() ? "Bulut bagli" : "Bagli", "ok");
+    setPill(selectors.connectionPill, cloudEnabled() ? t("cloudConnected") : t("connected"), "ok");
     if (selectors.connectionHelp) selectors.connectionHelp.textContent = sourceText();
   } else {
-    setPill(selectors.connectionPill, detail || "Baglanti yok", "danger");
+    setPill(selectors.connectionPill, detail || t("connectionLost"), "danger");
     if (selectors.connectionHelp) {
       selectors.connectionHelp.textContent = cloudEnabled()
-        ? "Bulutta veri yok. ESP32 acik olmali, Wi-Fi'ye baglanmali ve Firebase adresi .ino icinde dogru olmali."
-        : "Durum gorunmuyorsa ESP32 ile ayni Wi-Fi/hotspot aginda ac ve Serial Monitor'daki IP adresini Cihaz API adresi alanina yaz.";
+        ? t("cloudMissing")
+        : t("localMissing");
     }
   }
 }
@@ -191,10 +444,10 @@ function setConnection(connected, detail = "") {
 function secondsText(seconds) {
   if (seconds === null || seconds === undefined || Number.isNaN(Number(seconds))) return "-";
   const value = Math.max(0, Number(seconds));
-  if (value < 60) return `${Math.floor(value)} sn`;
+  if (value < 60) return `${Math.floor(value)} ${t("seconds")}`;
   const minutes = Math.floor(value / 60);
   const rest = Math.floor(value % 60);
-  return `${minutes} dk ${rest} sn`;
+  return `${minutes} ${t("minutes")} ${rest} ${t("seconds")}`;
 }
 
 function eventAge(event) {
@@ -204,42 +457,73 @@ function eventAge(event) {
   return Number(event.ageSeconds || 0);
 }
 
-function mapEmbedUrl(lat, lng) {
-  const latitude = Number(lat);
-  const longitude = Number(lng);
-  const delta = 0.012;
-  const bbox = [
-    longitude - delta,
-    latitude - delta,
-    longitude + delta,
-    latitude + delta
-  ].join(",");
+function lonToTile(lng, zoom) {
+  return ((Number(lng) + 180) / 360) * Math.pow(2, zoom);
+}
 
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${latitude},${longitude}`;
+function latToTile(lat, zoom) {
+  const radians = Number(lat) * Math.PI / 180;
+  return ((1 - Math.log(Math.tan(radians) + 1 / Math.cos(radians)) / Math.PI) / 2) * Math.pow(2, zoom);
+}
+
+function tileUrl(x, y, zoom) {
+  const subdomain = ["a", "b", "c"][Math.abs(x + y) % 3];
+  return `https://${subdomain}.tile.openstreetmap.org/${zoom}/${x}/${y}.png`;
+}
+
+function renderTileMap(lat, lng) {
+  const canvas = selectors.liveMapCanvas;
+  if (!canvas) return;
+
+  const zoom = MAP_ZOOM;
+  const centerX = lonToTile(lng, zoom);
+  const centerY = latToTile(lat, zoom);
+  const baseX = Math.floor(centerX);
+  const baseY = Math.floor(centerY);
+  const key = `${zoom}:${baseX}:${baseY}`;
+  const width = canvas.clientWidth || 900;
+  const height = canvas.clientHeight || 420;
+
+  appState.lastMapKey = key;
+  canvas.innerHTML = "";
+
+  for (let dx = -2; dx <= 2; dx++) {
+    for (let dy = -2; dy <= 2; dy++) {
+      const tileX = baseX + dx;
+      const tileY = baseY + dy;
+      const img = document.createElement("img");
+      img.className = "map-tile";
+      img.alt = "";
+      img.decoding = "async";
+      img.loading = "eager";
+      img.src = tileUrl(tileX, tileY, zoom);
+      img.style.left = `${width / 2 + (tileX - centerX) * TILE_SIZE}px`;
+      img.style.top = `${height / 2 + (tileY - centerY) * TILE_SIZE}px`;
+      canvas.append(img);
+    }
+  }
 }
 
 function updateMap(gps) {
-  if (!selectors.liveMapFrame || !selectors.mapStatus) return;
+  if (!selectors.mapStatus) return;
 
   if (gps.fixValid) {
     const lat = Number(gps.lat);
     const lng = Number(gps.lng);
-    const nextSrc = mapEmbedUrl(lat, lng);
-
-    if (selectors.liveMapFrame.dataset.src !== nextSrc) {
-      selectors.liveMapFrame.src = nextSrc;
-      selectors.liveMapFrame.dataset.src = nextSrc;
-    }
-
-    selectors.mapStatus.textContent = `Konum: ${lat.toFixed(6)}, ${lng.toFixed(6)} - son fix ${secondsText(gps.fixAgeSeconds)} once`;
+    renderTileMap(lat, lng);
+    selectors.liveMapCanvas?.closest(".map-shell")?.classList.add("has-fix");
+    selectors.mapStatus.textContent = t("mapLive", {
+      lat: lat.toFixed(6),
+      lng: lng.toFixed(6),
+      age: secondsText(gps.fixAgeSeconds)
+    });
     selectors.mapStatus.classList.add("is-live");
     setPill(selectors.mapCoord, `${lat.toFixed(4)}, ${lng.toFixed(4)}`, "ok");
   } else {
-    selectors.liveMapFrame.removeAttribute("src");
-    selectors.liveMapFrame.dataset.src = "";
-    selectors.mapStatus.textContent = "GPS fix geldiginde harita burada canli guncellenecek.";
+    selectors.liveMapCanvas?.closest(".map-shell")?.classList.remove("has-fix");
+    selectors.mapStatus.textContent = t("mapWaiting");
     selectors.mapStatus.classList.remove("is-live");
-    setPill(selectors.mapCoord, "GPS bekleniyor", "muted");
+    setPill(selectors.mapCoord, t("waitingGps"), "muted");
   }
 }
 
@@ -260,7 +544,7 @@ function updateVisualTracking(zones, gps, alarmActive) {
   const brokenZones = zones.filter((zone) => zone.alarm).map((zone) => zone.name);
   setPill(
     selectors.visualRisk,
-    brokenZones.length ? `Risk: ${brokenZones.join(", ")}` : "Takip normal",
+    brokenZones.length ? `${t("risk")}: ${brokenZones.join(", ")}` : t("trackingNormal"),
     brokenZones.length ? "danger" : "ok"
   );
 
@@ -268,11 +552,11 @@ function updateVisualTracking(zones, gps, alarmActive) {
 
   if (selectors.visualGpsState && selectors.visualGpsHint) {
     if (gps.fixValid) {
-      selectors.visualGpsState.textContent = "GPS fix aktif";
-      selectors.visualGpsHint.textContent = `${Number(gps.lat).toFixed(5)}, ${Number(gps.lng).toFixed(5)} - ${secondsText(gps.fixAgeSeconds)} once`;
+      selectors.visualGpsState.textContent = t("gpsActive");
+      selectors.visualGpsHint.textContent = `${Number(gps.lat).toFixed(5)}, ${Number(gps.lng).toFixed(5)} - ${secondsText(gps.fixAgeSeconds)} ${t("ago")}`;
     } else {
-      selectors.visualGpsState.textContent = "Konum bekleniyor";
-      selectors.visualGpsHint.textContent = "Fix alindiginda harita baglantisi aktif olur.";
+      selectors.visualGpsState.textContent = t("waitingLocation");
+      selectors.visualGpsHint.textContent = t("gpsHint");
     }
   }
 }
@@ -286,40 +570,40 @@ function renderStatus(data) {
 
   appState.lastStatus = data;
 
-  selectors.alarmValue.textContent = alarmActive ? "UYARI" : "NORMAL";
+  selectors.alarmValue.textContent = alarmActive ? t("alert") : t("normal");
   selectors.alarmDetail.textContent = alarmActive
-    ? `Etkilenen: ${brokenZones.map((zone) => zone.name).join(", ") || "-"}`
-    : `Saglam: ${healthyZones.map((zone) => zone.name).join(", ") || "-"}`;
+    ? `${t("affected")}: ${brokenZones.map((zone) => zone.name).join(", ") || "-"}`
+    : `${t("healthy")}: ${healthyZones.map((zone) => zone.name).join(", ") || "-"}`;
   selectors.alarmValue.closest(".metric").classList.toggle("is-danger", alarmActive);
   selectors.alarmValue.closest(".metric").classList.toggle("is-ok", !alarmActive);
 
-  selectors.wifiValue.textContent = data.wifiConnected ? "Bagli" : "Kopuk";
-  selectors.ipValue.textContent = data.ip ? `IP: ${data.ip}` : (data.apIp ? `AP: ${data.apIp}` : "IP yok");
+  selectors.wifiValue.textContent = data.wifiConnected ? t("wifiOnline") : t("wifiOffline");
+  selectors.ipValue.textContent = data.ip ? `IP: ${data.ip}` : (data.apIp ? `AP: ${data.apIp}` : t("noIp"));
 
-  selectors.gpsValue.textContent = gps.fixValid ? "Fix var" : "Fix yok";
-  selectors.gpsDetail.textContent = gps.fixValid ? `${gps.satellites ?? 0} uydu` : "Konum bekleniyor";
+  selectors.gpsValue.textContent = gps.fixValid ? t("fix") : t("noFix");
+  selectors.gpsDetail.textContent = gps.fixValid ? `${gps.satellites ?? 0} ${t("satellite").toLowerCase()}` : t("waitingPosition");
   updateVisualTracking(zones, gps, alarmActive);
   updateMap(gps);
 
   selectors.updatedValue.textContent = new Date().toLocaleTimeString("tr-TR");
-  selectors.deviceTimeValue.textContent = `Cihaz acik: ${secondsText(Math.floor((data.deviceMillis || 0) / 1000))}`;
+  selectors.deviceTimeValue.textContent = `${t("deviceOpen")}: ${secondsText(Math.floor((data.deviceMillis || 0) / 1000))}`;
 
   setPill(
     selectors.zoneSummary,
-    brokenZones.length ? `${brokenZones.length} alarm` : "Tumu saglam",
+    brokenZones.length ? t("alarmCount", { count: brokenZones.length }) : t("allHealthy"),
     brokenZones.length ? "danger" : "ok"
   );
 
   selectors.zoneList.innerHTML = zones.map((zone) => {
     const tone = zone.alarm ? "danger" : "ok";
-    const state = zone.alarm ? "KOPUK / VURULDU" : "SAGLAM";
+    const state = zone.alarm ? t("broken") : t("solid");
     return `
       <div class="zone-item ${tone}">
         <strong>${escapeHtml(zone.name)}</strong>
         <span class="zone-state">${state}</span>
       </div>
     `;
-  }).join("") || `<div class="empty-state">Bolge verisi yok</div>`;
+  }).join("") || `<div class="empty-state">${t("noZoneData")}</div>`;
 
   selectors.izlemeToggle.checked = Boolean(data.izlemeMode);
   selectors.sistemToggle.checked = Boolean(data.sistemMode);
@@ -328,7 +612,7 @@ function renderStatus(data) {
     selectors.latValue.textContent = Number(gps.lat).toFixed(6);
     selectors.lngValue.textContent = Number(gps.lng).toFixed(6);
     selectors.satValue.textContent = String(gps.satellites ?? 0);
-    selectors.speedValue.textContent = `${Number(gps.speedKmph || 0).toFixed(2)} km/s`;
+    selectors.speedValue.textContent = `${Number(gps.speedKmph || 0).toFixed(2)} km/h`;
     selectors.fixAgeValue.textContent = secondsText(gps.fixAgeSeconds);
     selectors.mapLink.href = `https://maps.google.com/?q=${gps.lat},${gps.lng}`;
     selectors.mapLink.classList.remove("disabled");
@@ -344,10 +628,10 @@ function renderStatus(data) {
 }
 
 function renderEvents() {
-  selectors.eventCount.textContent = `${appState.eventHistory.length} kayit`;
+  selectors.eventCount.textContent = `${appState.eventHistory.length} ${t("record")}`;
 
   if (!appState.eventHistory.length) {
-    selectors.eventList.innerHTML = `<li class="empty-state">Henuz bildirim yok</li>`;
+    selectors.eventList.innerHTML = `<li class="empty-state">${t("noNotifications")}</li>`;
     return;
   }
 
@@ -359,10 +643,10 @@ function renderEvents() {
       return `
         <li class="event-item ${tone}">
           <div class="event-title">
-            <span>${escapeHtml(event.title || "Bildirim")}</span>
-            <time>${secondsText(eventAge(event))} once</time>
+            <span>${escapeHtml(localizeEventText(event.title || "Bildirim"))}</span>
+            <time>${secondsText(eventAge(event))} ${t("ago")}</time>
           </div>
-          <div class="event-message">${escapeHtml(event.message || "")}</div>
+          <div class="event-message">${escapeHtml(localizeEventText(event.message || ""))}</div>
         </li>
       `;
     })
@@ -373,8 +657,8 @@ function showToast(event) {
   const toast = document.createElement("div");
   toast.className = `toast ${event.critical ? "danger" : ""}`;
   toast.innerHTML = `
-    <strong>${escapeHtml(event.title || "Bildirim")}</strong>
-    <p>${escapeHtml(event.message || "")}</p>
+    <strong>${escapeHtml(localizeEventText(event.title || "Bildirim"))}</strong>
+    <p>${escapeHtml(localizeEventText(event.message || ""))}</p>
   `;
   selectors.toastRoot.append(toast);
   window.setTimeout(() => toast.remove(), event.critical ? 9000 : 5200);
@@ -415,8 +699,8 @@ function browserNotify(event) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
 
   try {
-    const notification = new Notification(event.title || "SentriVest", {
-      body: String(event.message || "").slice(0, 220),
+    const notification = new Notification(localizeEventText(event.title || "SentriVest"), {
+      body: localizeEventText(event.message || "").slice(0, 220),
       tag: `sentrivest-${event.type || "event"}`,
       renotify: Boolean(event.critical)
     });
@@ -465,7 +749,7 @@ async function refreshAll() {
     await refreshEvents();
     setConnection(true);
   } catch (error) {
-    setConnection(false, cloudEnabled() ? "Bulut veri yok" : "Baglanti yok");
+    setConnection(false, cloudEnabled() ? t("cloudNoData") : t("connectionLost"));
     selectors.updatedValue.textContent = "-";
     selectors.deviceTimeValue.textContent = error.message;
   }
@@ -481,8 +765,8 @@ async function setMode(name, enabled) {
         createdAt: Date.now()
       });
       showToast({
-        title: "Komut buluta gonderildi",
-        message: `${name} ${enabled ? "ac" : "kapat"} istegi ESP32 tarafindan okunacak.`,
+        title: t("commandSent"),
+        message: t("commandSentBody", { name, state: enabled ? t("open") : t("close") }),
         critical: false
       });
     } else {
@@ -490,7 +774,7 @@ async function setMode(name, enabled) {
     }
     await refreshAll();
   } catch (error) {
-    showToast({ title: "Komut gonderilemedi", message: error.message, critical: true });
+    showToast({ title: t("commandFailed"), message: error.message, critical: true });
     await refreshAll();
   }
 }
@@ -499,22 +783,22 @@ async function requestNotifications() {
   ensureAudio();
 
   if (!("Notification" in window)) {
-    selectors.notifyButton.textContent = "Bildirim yok";
+    selectors.notifyButton.textContent = t("notificationsUnavailable");
     return;
   }
 
   try {
     const permission = await Notification.requestPermission();
-    selectors.notifyButton.textContent = permission === "granted" ? "Bildirim acik" : "Bildirim kapali";
+    selectors.notifyButton.textContent = permission === "granted" ? t("notificationsOpen") : t("notificationsClosed");
   } catch (error) {
-    selectors.notifyButton.textContent = "Bildirim kapali";
+    selectors.notifyButton.textContent = t("notificationsClosed");
   }
 }
 
 function toggleSound() {
   appState.soundEnabled = !appState.soundEnabled;
   localStorage.setItem("sentrivest:sound", appState.soundEnabled ? "1" : "0");
-  selectors.soundButton.textContent = appState.soundEnabled ? "Ses acik" : "Sesi ac";
+  selectors.soundButton.textContent = appState.soundEnabled ? t("soundOn") : t("enableSound");
   if (appState.soundEnabled) {
     ensureAudio();
     playAlarmTone();
@@ -529,21 +813,21 @@ function startPolling() {
 
 function init() {
   appState.baseUrl = normalizeBaseUrl(defaultBaseUrl());
-  selectors.deviceBase.value = cloudEnabled() ? "Firebase bulut modu aktif" : appState.baseUrl;
+  selectors.deviceBase.value = cloudEnabled() ? t("firebaseActive") : appState.baseUrl;
   selectors.deviceBase.disabled = cloudEnabled();
   selectors.apiForm.querySelector("button").disabled = cloudEnabled();
-  selectors.soundButton.textContent = appState.soundEnabled ? "Ses acik" : "Sesi ac";
+  selectors.soundButton.textContent = appState.soundEnabled ? t("soundOn") : t("enableSound");
 
   if (selectors.connectionHelp) {
     selectors.connectionHelp.textContent = cloudEnabled()
-      ? "Public link modu hazir. ESP32 Firebase'e veri gonderdiginde herkes bu panelden gorecek."
-      : "Firebase adresi girilmedigi icin yerel ESP32 API modu kullaniliyor.";
+      ? t("publicReady")
+      : t("localMode");
   }
 
   if ("Notification" in window) {
-    selectors.notifyButton.textContent = Notification.permission === "granted" ? "Bildirim acik" : "Bildirimleri ac";
+    selectors.notifyButton.textContent = Notification.permission === "granted" ? t("notificationsOpen") : t("enableNotifications");
   } else {
-    selectors.notifyButton.textContent = "Bildirim yok";
+    selectors.notifyButton.textContent = t("notificationsUnavailable");
   }
 
   selectors.apiForm.addEventListener("submit", (event) => {
@@ -561,7 +845,15 @@ function init() {
   selectors.sistemToggle.addEventListener("change", () => setMode("sistem", selectors.sistemToggle.checked));
   selectors.notifyButton.addEventListener("click", requestNotifications);
   selectors.soundButton.addEventListener("click", toggleSound);
+  selectors.languageButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      appState.lang = button.dataset.langButton;
+      localStorage.setItem("sentrivest:lang", appState.lang);
+      applyLanguage();
+    });
+  });
 
+  applyLanguage();
   startPolling();
 }
 

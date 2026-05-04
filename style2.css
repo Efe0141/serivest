@@ -100,6 +100,31 @@ input {
   justify-content: flex-end;
 }
 
+.language-toggle {
+  display: inline-flex;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.lang-button {
+  min-width: 42px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.lang-button.active {
+  color: #061017;
+  background: linear-gradient(135deg, var(--cyan), var(--blue));
+  box-shadow: 0 0 18px rgba(64, 224, 255, 0.18);
+}
+
 .button {
   min-height: 42px;
   border: 1px solid transparent;
@@ -272,6 +297,8 @@ input {
   position: absolute;
   inset: 0;
   border: 1px solid rgba(64, 224, 255, 0.1);
+  background: linear-gradient(180deg, transparent 0%, rgba(64, 224, 255, 0.08) 48%, transparent 52%);
+  animation: vestScan 5.4s linear infinite;
   pointer-events: none;
 }
 
@@ -292,6 +319,19 @@ input {
   padding: 10px;
 }
 
+.vest-holo-title {
+  position: absolute;
+  left: 18px;
+  top: 14px;
+  z-index: 2;
+  color: rgba(64, 224, 255, 0.74);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-shadow: 0 0 18px rgba(64, 224, 255, 0.42);
+}
+
 .radar-grid circle,
 .radar-grid line {
   fill: none;
@@ -300,10 +340,16 @@ input {
 }
 
 .vest-body {
-  fill: var(--vest);
+  fill: url(#bodySheen);
   stroke: var(--vest-line);
   stroke-width: 5;
   filter: drop-shadow(0 24px 20px rgba(0, 0, 0, 0.46));
+}
+
+.vest-plate {
+  fill: rgba(255, 255, 255, 0.035);
+  stroke: rgba(64, 224, 255, 0.16);
+  stroke-width: 2;
 }
 
 .vest-split {
@@ -311,6 +357,31 @@ input {
   stroke: rgba(255, 255, 255, 0.28);
   stroke-width: 3;
   stroke-linecap: round;
+}
+
+.circuit-line {
+  fill: none;
+  stroke: rgba(64, 224, 255, 0.48);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 4 7;
+  animation: circuitFlow 2.8s linear infinite;
+}
+
+.core-ring {
+  fill: rgba(64, 224, 255, 0.04);
+  stroke: rgba(64, 224, 255, 0.62);
+  stroke-width: 3;
+  stroke-dasharray: 10 6;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: coreSpin 8s linear infinite;
+}
+
+.core-dot {
+  fill: var(--cyan);
+  filter: drop-shadow(0 0 12px rgba(64, 224, 255, 0.9));
 }
 
 .vest-caption {
@@ -578,13 +649,52 @@ input {
   z-index: 1;
 }
 
-.live-map-frame {
+.live-map-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  border: 0;
-  filter: saturate(0.92) contrast(1.04);
+  overflow: hidden;
+  filter: saturate(0.72) contrast(1.08) brightness(0.76);
+}
+
+.map-tile {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.live-location-pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 77, 95, 0.13);
+  border: 1px solid rgba(255, 77, 95, 0.36);
+  box-shadow: 0 0 26px rgba(255, 77, 95, 0.28);
+  animation: markerPulse 1.5s ease-in-out infinite;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.map-shell.has-fix .live-location-pin {
+  opacity: 1;
+}
+
+.live-location-pin span {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #ff3d52;
+  box-shadow: 0 0 14px rgba(255, 77, 95, 0.72);
 }
 
 .map-status {
@@ -770,6 +880,46 @@ input {
 
   50% {
     transform: scale(1.25);
+  }
+}
+
+@keyframes markerPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(255, 77, 95, 0);
+  }
+
+  50% {
+    transform: scale(1.12);
+    box-shadow: 0 0 22px rgba(255, 77, 95, 0.32);
+  }
+}
+
+@keyframes vestScan {
+  0% {
+    transform: translateY(-85%);
+    opacity: 0;
+  }
+
+  20%, 70% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(85%);
+    opacity: 0;
+  }
+}
+
+@keyframes circuitFlow {
+  to {
+    stroke-dashoffset: -22;
+  }
+}
+
+@keyframes coreSpin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

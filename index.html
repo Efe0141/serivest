@@ -11,40 +11,50 @@
     <header class="topbar">
       <div>
         <p class="eyebrow">SentriVest</p>
-        <h1>Akilli Takip ve Tespit Yelegi</h1>
+        <h1 data-i18n="appTitle">Akilli Takip ve Tespit Yelegi</h1>
       </div>
       <div class="top-actions">
-        <span id="connectionPill" class="pill muted">Baglanti bekleniyor</span>
-        <button id="refreshButton" class="button secondary" type="button">Yenile</button>
+        <div class="language-toggle" aria-label="Language">
+          <button class="lang-button active" type="button" data-lang-button="tr">TR</button>
+          <button class="lang-button" type="button" data-lang-button="en">EN</button>
+        </div>
+        <span id="connectionPill" class="pill muted" data-i18n="waitingConnection">Baglanti bekleniyor</span>
+        <button id="refreshButton" class="button secondary" type="button" data-i18n="refresh">Yenile</button>
       </div>
     </header>
 
     <main>
       <section class="api-panel">
         <form id="apiForm" class="api-form">
-          <label for="deviceBase">Cihaz API adresi</label>
+          <label for="deviceBase" data-i18n="deviceApi">Cihaz API adresi</label>
           <div class="input-row">
             <input id="deviceBase" type="url" placeholder="http://sentrivest.local" autocomplete="off">
-            <button class="button primary" type="submit">Baglan</button>
+            <button class="button primary" type="submit" data-i18n="connect">Baglan</button>
           </div>
         </form>
-        <p id="connectionHelp" class="connection-help">Canli durum icin ESP32 ile ayni Wi-Fi/hotspot aginda olunmali.</p>
+        <p id="connectionHelp" class="connection-help" data-i18n="connectionHelpInitial">Canli durum icin ESP32 ile ayni Wi-Fi/hotspot aginda olunmali.</p>
       </section>
 
       <section class="visual-band" aria-label="Gorsel takip">
         <article id="vestPanel" class="panel vest-panel">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Canli harita</p>
-              <h2>Yelek uzerinden takip</h2>
+              <p class="eyebrow" data-i18n="liveArmor">Canli harita</p>
+              <h2 data-i18n="vestTracking">Yelek uzerinden takip</h2>
             </div>
-            <span id="visualRisk" class="pill muted">Veri bekleniyor</span>
+            <span id="visualRisk" class="pill muted" data-i18n="waitingData">Veri bekleniyor</span>
           </div>
 
           <div id="vestStage" class="vest-stage">
+            <div class="vest-holo-title" aria-hidden="true">SENTRIVEST / LIVE ARMOR TELEMETRY</div>
             <svg class="vest-map" viewBox="0 0 720 430" role="img" aria-labelledby="vestMapTitle">
               <title id="vestMapTitle">Yelek bolge takip semasi</title>
               <defs>
+                <linearGradient id="bodySheen" x1="0" x2="1" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#1d2a36"></stop>
+                  <stop offset="52%" stop-color="#0e151f"></stop>
+                  <stop offset="100%" stop-color="#263848"></stop>
+                </linearGradient>
                 <filter id="zoneGlow" x="-35%" y="-35%" width="170%" height="170%">
                   <feGaussianBlur stdDeviation="7" result="blur"></feGaussianBlur>
                   <feMerge>
@@ -65,9 +75,17 @@
               <g class="vest-unit front-unit" transform="translate(76 34)">
                 <text class="vest-caption" x="138" y="20">ON GORUNUM</text>
                 <path class="vest-body" d="M93 48 L128 31 H190 L225 48 L260 125 L232 141 L218 90 L218 325 Q175 354 101 325 L101 90 L87 141 L58 125 Z"></path>
+                <path class="vest-plate" d="M112 76 L151 56 L151 322 Q131 320 111 313 Z"></path>
+                <path class="vest-plate" d="M167 56 L206 76 L207 313 Q187 320 167 322 Z"></path>
                 <path class="vest-split" d="M159 35 L159 336"></path>
+                <path class="circuit-line" d="M124 95 H146 V122 H159"></path>
+                <path class="circuit-line" d="M195 95 H172 V122 H159"></path>
+                <path class="circuit-line" d="M132 250 H153 V287"></path>
+                <path class="circuit-line" d="M186 250 H166 V287"></path>
                 <path id="visualZone0" class="vest-zone ok" data-zone-index="0" d="M111 80 L151 60 L151 179 L108 184 L101 109 Z"></path>
                 <path id="visualZone1" class="vest-zone ok" data-zone-index="1" d="M167 60 L207 80 L217 109 L210 184 L167 179 Z"></path>
+                <circle class="core-ring" cx="159" cy="204" r="19"></circle>
+                <circle class="core-dot" cx="159" cy="204" r="5"></circle>
                 <circle id="visualDot0" class="sensor-dot ok" cx="132" cy="130" r="9"></circle>
                 <circle id="visualDot1" class="sensor-dot ok" cx="188" cy="130" r="9"></circle>
                 <text class="zone-label" x="132" y="212">Sol gogus</text>
@@ -77,7 +95,12 @@
               <g class="vest-unit back-unit" transform="translate(386 34)">
                 <text class="vest-caption" x="138" y="20">ARKA GORUNUM</text>
                 <path class="vest-body" d="M93 48 L128 31 H190 L225 48 L260 125 L232 141 L218 90 L218 325 Q175 354 101 325 L101 90 L87 141 L58 125 Z"></path>
+                <path class="vest-plate" d="M113 77 Q159 53 205 77 L208 315 Q159 337 110 315 Z"></path>
+                <path class="circuit-line" d="M159 98 V148"></path>
+                <path class="circuit-line" d="M132 176 H186"></path>
+                <path class="circuit-line" d="M128 245 H190"></path>
                 <path id="visualZone2" class="vest-zone ok" data-zone-index="2" d="M116 95 Q159 72 202 95 L207 261 Q159 286 111 261 Z"></path>
+                <circle class="core-ring" cx="159" cy="176" r="30"></circle>
                 <circle id="visualDot2" class="sensor-dot ok" cx="159" cy="176" r="11"></circle>
                 <text class="zone-label" x="159" y="305">Sirt</text>
               </g>
@@ -90,9 +113,9 @@
                 <strong id="satBadge">0</strong>
               </div>
               <div>
-                <span class="tracking-label">GPS takibi</span>
-                <strong id="visualGpsState">Konum bekleniyor</strong>
-                <small id="visualGpsHint">Fix alindiginda harita baglantisi aktif olur.</small>
+                <span class="tracking-label" data-i18n="gpsTracking">GPS takibi</span>
+                <strong id="visualGpsState" data-i18n="waitingLocation">Konum bekleniyor</strong>
+                <small id="visualGpsHint" data-i18n="gpsHint">Fix alindiginda harita baglantisi aktif olur.</small>
               </div>
             </div>
           </div>
@@ -116,7 +139,7 @@
           <small id="gpsDetail">Konum bekleniyor</small>
         </article>
         <article class="metric">
-          <span>Son guncelleme</span>
+          <span data-i18n="lastUpdate">Son guncelleme</span>
           <strong id="updatedValue">-</strong>
           <small id="deviceTimeValue">Cihaz suresi bekleniyor</small>
         </article>
@@ -126,8 +149,8 @@
         <article class="panel alarm-panel">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Bolgeler</p>
-              <h2>Kisim durumlari</h2>
+              <p class="eyebrow" data-i18n="zones">Bolgeler</p>
+              <h2 data-i18n="zoneStatus">Kisim durumlari</h2>
             </div>
             <span id="zoneSummary" class="pill muted">-</span>
           </div>
@@ -137,30 +160,30 @@
         <article class="panel gps-panel">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Konum</p>
-              <h2>GPS bilgisi</h2>
+              <p class="eyebrow" data-i18n="location">Konum</p>
+              <h2 data-i18n="gpsInfo">GPS bilgisi</h2>
             </div>
-            <a id="mapLink" class="button secondary disabled" href="#" target="_blank" rel="noreferrer">Harita</a>
+            <a id="mapLink" class="button secondary disabled" href="#" target="_blank" rel="noreferrer" data-i18n="map">Harita</a>
           </div>
           <dl class="gps-list">
             <div>
-              <dt>Enlem</dt>
+              <dt data-i18n="latitude">Enlem</dt>
               <dd id="latValue">-</dd>
             </div>
             <div>
-              <dt>Boylam</dt>
+              <dt data-i18n="longitude">Boylam</dt>
               <dd id="lngValue">-</dd>
             </div>
             <div>
-              <dt>Uydu</dt>
+              <dt data-i18n="satellite">Uydu</dt>
               <dd id="satValue">-</dd>
             </div>
             <div>
-              <dt>Hiz</dt>
+              <dt data-i18n="speed">Hiz</dt>
               <dd id="speedValue">-</dd>
             </div>
             <div>
-              <dt>Son fix</dt>
+              <dt data-i18n="lastFix">Son fix</dt>
               <dd id="fixAgeValue">-</dd>
             </div>
           </dl>
@@ -169,50 +192,51 @@
         <article class="panel map-panel">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Harita</p>
-              <h2>Canli konum takibi</h2>
+              <p class="eyebrow" data-i18n="map">Harita</p>
+              <h2 data-i18n="liveLocationTracking">Canli konum takibi</h2>
             </div>
-            <span id="mapCoord" class="pill muted">GPS bekleniyor</span>
+            <span id="mapCoord" class="pill muted" data-i18n="waitingGps">GPS bekleniyor</span>
           </div>
           <div class="map-shell">
-            <iframe id="liveMapFrame" class="live-map-frame" title="Canli konum haritasi" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-            <div id="mapStatus" class="map-status">GPS fix geldiginde harita burada canli guncellenecek.</div>
+            <div id="liveMapCanvas" class="live-map-canvas" role="application" aria-label="Canli konum haritasi"></div>
+            <div class="live-location-pin" aria-hidden="true"><span></span></div>
+            <div id="mapStatus" class="map-status" data-i18n="mapWaiting">GPS fix geldiginde harita burada canli guncellenecek.</div>
           </div>
         </article>
 
         <article class="panel control-panel">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Komutlar</p>
-              <h2>Calisma modu</h2>
+              <p class="eyebrow" data-i18n="commands">Komutlar</p>
+              <h2 data-i18n="workMode">Calisma modu</h2>
             </div>
           </div>
           <div class="control-grid">
             <label class="toggle-row">
               <input id="izlemeToggle" type="checkbox">
               <span class="toggle-ui"></span>
-              <strong>Izleme</strong>
+              <strong data-i18n="tracking">Izleme</strong>
             </label>
             <label class="toggle-row">
               <input id="sistemToggle" type="checkbox">
               <span class="toggle-ui"></span>
-              <strong>Sistem</strong>
+              <strong data-i18n="system">Sistem</strong>
             </label>
-            <button id="notifyButton" class="button secondary" type="button">Bildirimleri ac</button>
-            <button id="soundButton" class="button secondary" type="button">Sesi ac</button>
+            <button id="notifyButton" class="button secondary" type="button" data-i18n="enableNotifications">Bildirimleri ac</button>
+            <button id="soundButton" class="button secondary" type="button" data-i18n="enableSound">Sesi ac</button>
           </div>
         </article>
 
         <article class="panel events-panel">
           <div class="panel-heading">
             <div>
-              <p class="eyebrow">Bildirimler</p>
-              <h2>Olay akisi</h2>
+              <p class="eyebrow" data-i18n="notifications">Bildirimler</p>
+              <h2 data-i18n="eventFeed">Olay akisi</h2>
             </div>
             <span id="eventCount" class="pill muted">0 kayit</span>
           </div>
           <ol id="eventList" class="event-list">
-            <li class="empty-state">Henuz bildirim yok</li>
+            <li class="empty-state" data-i18n="noNotifications">Henuz bildirim yok</li>
           </ol>
         </article>
       </section>
